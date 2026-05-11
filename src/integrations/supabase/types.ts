@@ -14,7 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      content_uploads: {
+        Row: {
+          content_type: string
+          created_at: string
+          file_path: string | null
+          id: string
+          original_content: string | null
+          status: string
+          title: string
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          content_type?: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          original_content?: string | null
+          status?: string
+          title: string
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          original_content?: string | null
+          status?: string
+          title?: string
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      generated_assets: {
+        Row: {
+          created_at: string
+          generated_text: string
+          id: string
+          platform: string
+          upload_id: string
+          user_id: string
+          voice_profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          generated_text: string
+          id?: string
+          platform: string
+          upload_id: string
+          user_id: string
+          voice_profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          generated_text?: string
+          id?: string
+          platform?: string
+          upload_id?: string
+          user_id?: string
+          voice_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_assets_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "content_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_assets_voice_profile_id_fkey"
+            columns: ["voice_profile_id"]
+            isOneToOne: false
+            referencedRelation: "voice_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generation_logs: {
+        Row: {
+          created_at: string
+          generation_type: string
+          id: string
+          prompt_tokens: number | null
+          response_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generation_type: string
+          id?: string
+          prompt_tokens?: number | null
+          response_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generation_type?: string
+          id?: string
+          prompt_tokens?: number | null
+          response_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      voice_profiles: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          example_content: string | null
+          id: string
+          is_default: boolean
+          profile_name: string
+          tone: string | null
+          user_id: string
+          voice_description: string | null
+          writing_style: string | null
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          example_content?: string | null
+          id?: string
+          is_default?: boolean
+          profile_name: string
+          tone?: string | null
+          user_id: string
+          voice_description?: string | null
+          writing_style?: string | null
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          example_content?: string | null
+          id?: string
+          is_default?: boolean
+          profile_name?: string
+          tone?: string | null
+          user_id?: string
+          voice_description?: string | null
+          writing_style?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
