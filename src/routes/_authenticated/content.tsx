@@ -72,7 +72,7 @@ function ContentPage() {
         data: {
           transcript: upload.transcript,
           platforms: picked as any,
-          voiceAnalysis: voice?.analysis ?? null,
+          voiceAnalysis: (voice?.analysis as Record<string, unknown> | null) ?? null,
           toneIntensity: intensity,
         },
       });
