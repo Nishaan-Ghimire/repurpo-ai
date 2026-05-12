@@ -123,6 +123,33 @@ export const generateContent = createServerFn({ method: "POST" })
     return { outputs };
   });
 
+/** Generate a single sample post in the writer's voice from dummy text — used by "Test Voice". */
+export const testVoice = createServerFn({ method: "POST" })
+  .inputValidator((d: { voiceAnalysis: Record<string, unknown> }) =>
+    z.object({ voiceAnalysis: z.record(z.string(), z.any()) }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const dummyTopic =
+      "Most creators publish too much and reflect too little. The compounding wins come from one good idea published consistently — not ten mediocre ones.";
+    const result = await callGemini([
+      {
+        role: "system",
+        content:
+          `You are an expert ghostwriter. Mimic this brand voice EXACTLY (tone, hooks, formatting, emoji usage, vocabulary). ` +
+          `Profile:\n${JSON.stringify(data.voiceAnalysis, null, 2)}`,
+      },
+      {
+        role: "user",
+        content:
+          `Write ONE short LinkedIn-style post (90-130 words) about this idea:\n\n"${dummyTopic}"\n\n` +
+          `Output only the post, no preamble.`,
+      },
+    ]);
+    const sample = result.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!sample) throw new Error("Could not generate a sample.");
+    return { sample };
+  });
+
 /** Transcribe audio/video using Google Chirp 3 (Speech-to-Text v2) */
 export const transcribeAudio = createServerFn({ method: "POST" })
   .inputValidator((d: { signedUrl: string; mimeType: string }) =>
