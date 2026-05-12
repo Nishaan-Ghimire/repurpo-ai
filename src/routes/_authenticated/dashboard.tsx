@@ -34,9 +34,9 @@ function Dashboard() {
           { label: "Voice profiles", value: stats.voices },
           { label: "Generated assets", value: stats.assets },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div key={s.label} className="rounded-2xl glass p-6 hover-lift">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
-            <div className="mt-2 font-display text-3xl font-bold">{s.value}</div>
+            <div className="mt-2 font-display text-3xl font-bold text-gradient">{s.value}</div>
           </div>
         ))}
       </div>
@@ -47,11 +47,11 @@ function Dashboard() {
         <QuickAction to="/content" icon={FileText} title="View library" body="Browse generated assets" />
       </div>
 
-      <div className="mt-10 rounded-2xl border border-border bg-gradient-primary p-8 text-primary-foreground shadow-elegant">
+      <div className="mt-10 rounded-2xl border border-primary/40 bg-gradient-primary p-8 text-primary-foreground shadow-elegant">
         <Sparkles className="h-6 w-6" />
         <h2 className="mt-3 font-display text-2xl font-bold">Ready to generate?</h2>
         <p className="mt-1 opacity-90">Upload a transcript or audio file to get started.</p>
-        <Button asChild className="mt-4" variant="secondary">
+        <Button asChild className="mt-4 btn-shine" variant="secondary">
           <Link to="/upload">New upload <ArrowRight className="ml-1 h-4 w-4" /></Link>
         </Button>
       </div>
@@ -61,8 +61,8 @@ function Dashboard() {
 
 function QuickAction({ to, icon: Icon, title, body }: { to: "/upload" | "/voice" | "/content"; icon: any; title: string; body: string }) {
   return (
-    <Link to={to} className="group rounded-2xl border border-border bg-card p-6 shadow-soft transition hover:shadow-elegant">
-      <div className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-primary">
+    <Link to={to} className="group rounded-2xl glass p-6 hover-lift">
+      <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-primary text-primary-foreground shadow-glow">
         <Icon className="h-5 w-5" />
       </div>
       <div className="mt-4 font-display font-semibold">{title}</div>
