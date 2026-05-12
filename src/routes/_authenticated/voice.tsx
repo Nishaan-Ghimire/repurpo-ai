@@ -94,7 +94,7 @@ function VoicePage() {
         example_content: examples,
         tone: preview.tone,
         writing_style: preview.summary,
-        analysis: preview as unknown as Record<string, unknown>,
+        analysis: JSON.parse(JSON.stringify(preview)),
         is_default: profiles.length === 0,
       });
       if (error) throw error;
