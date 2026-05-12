@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload as UploadIcon, FileText, Loader2 } from "lucide-react";
+import { Upload as UploadIcon, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { PremiumLoader } from "@/components/premium-loader";
 
 export const Route = createFileRoute("/_authenticated/upload")({ component: UploadPage });
 
@@ -91,7 +92,7 @@ function UploadPage() {
       <h1 className="font-display text-3xl font-bold">Upload content</h1>
       <p className="mt-1 text-muted-foreground">Audio, video, or paste text. We'll handle the rest.</p>
 
-      <div className="mt-8 space-y-4 rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="mt-8 space-y-4 rounded-2xl glass p-5 md:p-6">
         <div>
           <Label htmlFor="title">Title</Label>
           <Input id="title" placeholder="Episode 12: Building in public" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -108,10 +109,10 @@ function UploadPage() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
               onClick={() => fileRef.current?.click()}
-              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/40 p-12 text-center transition hover:border-primary hover:bg-accent/50"
+              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-background/30 p-8 text-center transition hover:border-primary hover:bg-accent/30 md:p-12"
             >
-              <UploadIcon className="h-8 w-8 text-muted-foreground" />
-              <p className="mt-3 text-sm font-medium">{file ? file.name : "Drop audio/video here or click to browse"}</p>
+              <UploadIcon className="h-8 w-8 text-primary" />
+              <p className="mt-3 text-sm font-medium">{file ? file.name : "Drop audio/video here or tap to browse"}</p>
               <p className="mt-1 text-xs text-muted-foreground">mp3, wav, mp4, m4a · max ~9MB</p>
               <input
                 ref={fileRef}
@@ -121,9 +122,10 @@ function UploadPage() {
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
-            <Button onClick={submitFile} disabled={busy || !file} className="mt-4 w-full bg-gradient-primary shadow-glow">
-              {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {stage || "Working…"}</>) : "Upload & transcribe"}
+            <Button onClick={submitFile} disabled={busy || !file} className="mt-4 w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow">
+              {busy ? "Working…" : "Upload & transcribe"}
             </Button>
+            {busy && <div className="mt-4"><PremiumLoader label={stage || "Working"} /></div>}
           </TabsContent>
 
           <TabsContent value="text" className="mt-4">
@@ -134,9 +136,10 @@ function UploadPage() {
               placeholder="Paste your transcript, article, blog draft, or YouTube transcript…"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              className="bg-background/40"
             />
-            <Button onClick={submitText} disabled={busy} className="mt-4 w-full bg-gradient-primary shadow-glow">
-              {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : (<><FileText className="mr-2 h-4 w-4" /> Save content</>)}
+            <Button onClick={submitText} disabled={busy} className="mt-4 w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow">
+              <FileText className="mr-2 h-4 w-4" /> {busy ? "Saving…" : "Save content"}
             </Button>
           </TabsContent>
         </Tabs>
