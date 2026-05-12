@@ -82,12 +82,16 @@ export const generateContent = createServerFn({ method: "POST" })
     platforms: string[];
     voiceAnalysis?: Record<string, unknown> | null;
     toneIntensity?: number;
+    feedback?: string;
+    previousText?: string;
   }) =>
     z.object({
       transcript: z.string().min(20).max(50000),
       platforms: z.array(z.enum(["twitter", "linkedin", "instagram", "newsletter", "tiktok"])).min(1).max(5),
       voiceAnalysis: z.record(z.string(), z.any()).nullable().optional(),
       toneIntensity: z.number().min(1).max(10).optional(),
+      feedback: z.string().max(2000).optional(),
+      previousText: z.string().max(20000).optional(),
     }).parse(d)
   )
   .handler(async ({ data }) => {
@@ -95,6 +99,9 @@ export const generateContent = createServerFn({ method: "POST" })
       ? `\n\nWRITER'S BRAND VOICE PROFILE (mimic exactly):\n${JSON.stringify(data.voiceAnalysis, null, 2)}\n`
       : "";
     const intensity = data.toneIntensity ?? 6;
+    const feedbackBlock = data.feedback
+      ? `\n\nUSER FEEDBACK ON PREVIOUS DRAFT (apply these changes):\n"${data.feedback}"\n${data.previousText ? `\nPREVIOUS DRAFT FOR REFERENCE:\n${data.previousText}\n` : ""}`
+      : "";
 
     const outputs: Record<string, string> = {};
 
@@ -112,7 +119,7 @@ export const generateContent = createServerFn({ method: "POST" })
           {
             role: "user",
             content:
-              `${platformInstr}\n\nSOURCE TRANSCRIPT:\n${data.transcript}\n\n` +
+              `${platformInstr}\n\nSOURCE TRANSCRIPT:\n${data.transcript}${feedbackBlock}\n\n` +
               `Output ONLY the final content — no preamble, no explanations, no "Here's your...".`,
           },
         ]);
