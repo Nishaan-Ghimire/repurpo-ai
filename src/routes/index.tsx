@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Sparkles, Wand2, Mic, FileText, Twitter, Linkedin, Instagram, Mail, Video, ArrowRight, Check } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-soft">
+    <div className="min-h-screen">
       <Nav />
       <Hero />
       <Logos />
@@ -43,8 +44,9 @@ function Nav() {
           <a href="#pricing" className="hover:text-foreground">Pricing</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm"><Link to="/login">Sign in</Link></Button>
-          <Button asChild size="sm" className="bg-gradient-primary shadow-glow"><Link to="/signup">Get started</Link></Button>
+          <ThemeSwitcher />
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link to="/login">Sign in</Link></Button>
+          <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground btn-shine shadow-glow"><Link to="/signup">Get started</Link></Button>
         </div>
       </div>
     </header>
@@ -54,7 +56,7 @@ function Nav() {
 function Hero() {
   return (
     <section className="mx-auto max-w-6xl px-6 pt-20 pb-24 text-center">
-      <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-soft">
+      <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-card/40 px-3 py-1 text-xs text-muted-foreground backdrop-blur ring-glow">
         <span className="h-1.5 w-1.5 rounded-full bg-primary" />
         Powered by Gemini & Chirp 3
       </div>
@@ -67,7 +69,7 @@ function Hero() {
         and turns it into platform-native posts for X, LinkedIn, Instagram, your newsletter, and Reels.
       </p>
       <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-        <Button asChild size="lg" className="bg-gradient-primary shadow-glow">
+        <Button asChild size="lg" className="bg-gradient-primary text-primary-foreground btn-shine shadow-glow">
           <Link to="/signup">Start free <ArrowRight className="ml-1 h-4 w-4" /></Link>
         </Button>
         <Button asChild size="lg" variant="outline">
@@ -82,7 +84,7 @@ function Hero() {
           { i: Mail, l: "Newsletter" },
           { i: Video, l: "Reel script" },
         ].map(({ i: Icon, l }) => (
-          <div key={l} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+          <div key={l} className="rounded-xl glass p-4 hover-lift">
             <Icon className="mx-auto h-5 w-5 text-primary" />
             <div className="mt-2 text-xs font-medium">{l}</div>
           </div>
@@ -117,8 +119,8 @@ function Features() {
       </p>
       <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {items.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="rounded-2xl border border-border bg-card p-6 shadow-soft transition hover:shadow-elegant">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-primary">
+          <div key={title} className="rounded-2xl glass p-6 hover-lift">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-primary text-primary-foreground shadow-glow">
               <Icon className="h-5 w-5" />
             </div>
             <h3 className="mt-4 font-display text-lg font-semibold">{title}</h3>
@@ -137,12 +139,12 @@ function Workflow() {
     { n: "03", t: "Generate", d: "Pick platforms — get every asset in seconds." },
   ];
   return (
-    <section id="workflow" className="bg-secondary/40 py-24">
+    <section id="workflow" className="border-y border-border/40 bg-card/20 py-24 backdrop-blur">
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="text-center font-display text-4xl font-bold">From input to inbox in 3 steps</h2>
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {steps.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-border bg-card p-8 shadow-soft">
+            <div key={s.n} className="rounded-2xl glass p-8 hover-lift">
               <div className="font-display text-5xl font-bold text-gradient">{s.n}</div>
               <h3 className="mt-4 font-display text-xl font-semibold">{s.t}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
@@ -168,7 +170,7 @@ function Pricing() {
         {tiers.map((t) => (
           <div
             key={t.name}
-            className={`rounded-2xl border p-8 shadow-soft ${t.featured ? "border-primary bg-card shadow-glow" : "border-border bg-card"}`}
+            className={`rounded-2xl p-8 hover-lift ${t.featured ? "glass-strong border-primary/40 ring-glow" : "glass"}`}
           >
             <div className="flex items-baseline justify-between">
               <h3 className="font-display text-xl font-semibold">{t.name}</h3>
@@ -185,7 +187,7 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <Button asChild className={`mt-6 w-full ${t.featured ? "bg-gradient-primary shadow-glow" : ""}`} variant={t.featured ? "default" : "outline"}>
+            <Button asChild className={`mt-6 w-full ${t.featured ? "bg-gradient-primary text-primary-foreground btn-shine shadow-glow" : ""}`} variant={t.featured ? "default" : "outline"}>
               <Link to="/signup">Get started</Link>
             </Button>
           </div>
@@ -198,7 +200,7 @@ function Pricing() {
 function CTA() {
   return (
     <section className="mx-auto max-w-4xl px-6 py-24 text-center">
-      <div className="rounded-3xl border border-border bg-gradient-primary p-12 text-primary-foreground shadow-elegant">
+      <div className="rounded-3xl border border-primary/40 bg-gradient-primary p-12 text-primary-foreground shadow-elegant btn-shine">
         <h2 className="font-display text-4xl font-bold">Stop rewriting. Start repurposing.</h2>
         <p className="mx-auto mt-4 max-w-lg opacity-90">Free to start. No credit card required.</p>
         <Button asChild size="lg" variant="secondary" className="mt-8">
