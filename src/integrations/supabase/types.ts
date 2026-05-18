@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       content_uploads: {
         Row: {
+          calendar_date: string
           content_type: string
           created_at: string
           file_path: string | null
@@ -27,6 +28,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          calendar_date?: string
           content_type?: string
           created_at?: string
           file_path?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          calendar_date?: string
           content_type?: string
           created_at?: string
           file_path?: string | null
