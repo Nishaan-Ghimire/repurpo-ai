@@ -3,18 +3,31 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useServerFn } from "@tanstack/react-start";
-import { generateContent } from "@/lib/ai.functions";
+import { generateContent, generateHooks, HOOK_STYLES, type HookStyle } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import {
   Copy, Sparkles, Twitter, Linkedin, Instagram, Mail, Video,
-  Search, Trash2, RefreshCw, ClipboardCopy, Clock,
+  Search, Trash2, RefreshCw, ClipboardCopy, Clock, Zap, Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
 import { fireGoldConfetti } from "@/lib/confetti";
+
+const HOOK_STYLE_LABELS: Record<HookStyle, string> = {
+  controversial: "Controversial",
+  curiosity: "Curiosity",
+  storytelling: "Storytelling",
+  authority: "Authority",
+  statistical: "Statistical",
+  emotional: "Emotional",
+  bold_claim: "Bold Claim",
+  question: "Question-Based",
+};
+
+interface Hook { style: HookStyle; text: string; }
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentPage,
