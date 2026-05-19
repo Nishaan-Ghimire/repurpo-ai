@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
 import { fireGoldConfetti } from "@/lib/confetti";
+import { RewriteControls } from "@/components/rewrite-controls";
 
 const HOOK_STYLE_LABELS: Record<HookStyle, string> = {
   controversial: "Controversial",
