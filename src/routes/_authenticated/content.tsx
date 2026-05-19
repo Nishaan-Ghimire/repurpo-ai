@@ -584,6 +584,11 @@ function ContentPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  <RewriteControls
+                    text={a.generated_text}
+                    platform={a.platform}
+                    onApply={(t) => updateAsset(a.id, t)}
+                  />
                   {isOpen && (
                     <div className="mt-3 rounded-xl border border-primary/30 bg-accent/30 p-3">
                       <label className="text-xs font-medium">Tell the AI what to change</label>
