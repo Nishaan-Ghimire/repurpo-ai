@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
+import { RewriteControls } from "@/components/rewrite-controls";
 
 export const Route = createFileRoute("/_authenticated/calendar")({ component: CalendarPage });
 
