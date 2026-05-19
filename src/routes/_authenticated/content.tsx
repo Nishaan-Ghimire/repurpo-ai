@@ -113,6 +113,50 @@ function ContentPage() {
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
+  const toggleHookStyle = (s: HookStyle) => {
+    setHookStyles((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  };
+
+  // Load any previously saved hooks for this source
+  useEffect(() => {
+    if (!selected) { setHooks([]); setSelectedHook(null); return; }
+    supabase.from("content_uploads").select("hooks").eq("id", selected).maybeSingle()
+      .then(({ data }) => {
+        const stored = (data?.hooks as Hook[] | null) ?? [];
+        setHooks(stored);
+        setSelectedHook(null);
+      });
+  }, [selected]);
+
+  const runHooks = async () => {
+    if (!user || !selected) return toast.error("Pick a source first.");
+    if (hookStyles.length === 0) return toast.error("Pick at least one hook style.");
+    const upload = uploads.find((u) => u.id === selected);
+    const topic = upload?.transcript;
+    if (!topic) return toast.error("Source has no transcript / text yet.");
+    setHooksBusy(true);
+    try {
+      const { data: voice } = await supabase.from("voice_profiles").select("analysis").eq("is_default", true).maybeSingle();
+      const { hooks: newHooks } = await genHooks({
+        data: {
+          topic,
+          platform: hookPlatform,
+          styles: hookStyles,
+          voiceAnalysis: (voice?.analysis as Record<string, unknown> | null) ?? null,
+        },
+      });
+      setHooks(newHooks);
+      setSelectedHook(null);
+      await supabase.from("content_uploads").update({ hooks: newHooks }).eq("id", selected);
+      toast.success(`Generated ${newHooks.length} hooks.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Hook generation failed";
+      toast.error(msg);
+    } finally {
+      setHooksBusy(false);
+    }
+  };
+
   const run = async () => {
     if (!user || !selected) return toast.error("Pick an upload first.");
     if (picked.length === 0) return toast.error("Pick at least one platform.");
