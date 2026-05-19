@@ -130,6 +130,7 @@ function ContentPage() {
           platforms: picked,
           voiceAnalysis: (voice?.analysis as Record<string, unknown> | null) ?? null,
           toneIntensity: intensity,
+          selectedHook: selectedHook ?? undefined,
         },
       });
 
