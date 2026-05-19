@@ -50,6 +50,7 @@ function ContentPage() {
   const { user } = useAuth();
   const { uploadId } = Route.useSearch();
   const generate = useServerFn(generateContent);
+  const genHooks = useServerFn(generateHooks);
 
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [selected, setSelected] = useState<string>("");
@@ -58,6 +59,13 @@ function ContentPage() {
   const [intensity, setIntensity] = useState(6);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
+
+  // Hook engine
+  const [hookStyles, setHookStyles] = useState<HookStyle[]>(["curiosity", "bold_claim"]);
+  const [hookPlatform, setHookPlatform] = useState<PlatformId>("linkedin");
+  const [hooks, setHooks] = useState<Hook[]>([]);
+  const [hooksBusy, setHooksBusy] = useState(false);
+  const [selectedHook, setSelectedHook] = useState<string | null>(null);
 
   // library filters
   const [query, setQuery] = useState("");
