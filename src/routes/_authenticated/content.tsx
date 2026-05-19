@@ -332,12 +332,135 @@ function ContentPage() {
           <Slider value={[intensity]} onValueChange={(v) => setIntensity(v[0])} min={1} max={10} step={1} className="mt-2" />
         </div>
 
+        {/* Hook Engine */}
+        <div className="rounded-xl border border-primary/30 bg-accent/20 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-primary text-primary-foreground shadow-glow">
+                <Zap className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <div className="font-display text-sm font-semibold">Hook Engine</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Generate scroll-stopping opening lines before the full post.
+                </div>
+              </div>
+            </div>
+            <select
+              value={hookPlatform}
+              onChange={(e) => setHookPlatform(e.target.value as PlatformId)}
+              className="rounded-md border border-input bg-background/60 px-2 py-1 text-xs backdrop-blur"
+            >
+              {PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs font-medium text-muted-foreground">Hook styles</label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {HOOK_STYLES.map((s) => {
+                const active = hookStyles.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleHookStyle(s)}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                      active
+                        ? "border-primary bg-gradient-primary text-primary-foreground shadow-glow"
+                        : "border-border bg-background/40 hover:border-primary/50"
+                    }`}
+                  >
+                    {HOOK_STYLE_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={runHooks}
+            disabled={hooksBusy || !selected}
+            className="mt-3"
+          >
+            <Zap className="mr-1.5 h-3.5 w-3.5" />
+            {hooksBusy ? "Generating hooks…" : "Generate Hook Variations"}
+          </Button>
+
+          {hooksBusy && (
+            <div className="mt-3 rounded-lg border border-border/60 bg-background/40 p-3">
+              <PremiumLoader label="Engineering attention" sublabel="Crafting hooks tuned to your platform…" />
+            </div>
+          )}
+
+          {hooks.length > 0 && (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {hooks.map((h, i) => {
+                const isSel = selectedHook === h.text;
+                return (
+                  <div
+                    key={`${h.style}-${i}`}
+                    className={`rounded-xl border p-3 transition ${
+                      isSel ? "border-primary bg-primary/10 shadow-glow" : "border-border bg-background/40 hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        {HOOK_STYLE_LABELS[h.style]}
+                      </span>
+                      {isSel && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
+                          <Check className="h-3 w-3" /> Selected
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed">{h.text}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => copy(h.text, "Hook copied")}>
+                        <Copy className="mr-1 h-3 w-3" /> Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={isSel ? "secondary" : "outline"}
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setSelectedHook(isSel ? null : h.text)}
+                      >
+                        {isSel ? "Unselect" : "Use This Hook"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedHook && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/40 bg-primary/10 p-2.5 text-xs">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <div className="flex-1">
+                <div className="font-semibold text-primary">Locked-in opening hook</div>
+                <div className="mt-0.5 text-muted-foreground line-clamp-2">{selectedHook}</div>
+              </div>
+              <button
+                onClick={() => setSelectedHook(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Clear selected hook"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
         <Button
           onClick={run}
           disabled={busy}
           className="w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow"
         >
-          <Sparkles className="mr-2 h-4 w-4" /> {busy ? "Generating…" : "Generate"}
+          <Sparkles className="mr-2 h-4 w-4" /> {busy ? "Generating…" : selectedHook ? "Generate with selected hook" : "Generate"}
         </Button>
 
         {busy && (
