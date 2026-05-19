@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
+import { RewriteControls } from "@/components/rewrite-controls";
 
 export const Route = createFileRoute("/_authenticated/calendar")({ component: CalendarPage });
 
@@ -446,6 +447,7 @@ function OutputBlock({ asset, onChange }: { asset: Asset; onChange: (t: string) 
           <Edit3 className="mr-1 h-3.5 w-3.5" /> {editing ? "Done" : "Edit"}
         </Button>
       </div>
+      <RewriteControls text={asset.generated_text} platform={asset.platform} onApply={onChange} />
     </div>
   );
 }

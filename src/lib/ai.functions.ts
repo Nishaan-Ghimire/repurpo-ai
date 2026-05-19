@@ -276,6 +276,76 @@ export const testVoice = createServerFn({ method: "POST" })
     return { sample };
   });
 
+export const REWRITE_STYLES = [
+  "shorter",
+  "longer",
+  "more_professional",
+  "more_casual",
+  "more_aggressive",
+  "more_emotional",
+  "more_viral",
+  "more_persuasive",
+  "simpler",
+  "more_storytelling",
+] as const;
+export type RewriteStyle = (typeof REWRITE_STYLES)[number];
+
+const REWRITE_STYLE_GUIDE: Record<RewriteStyle, string> = {
+  shorter: "Cut roughly 30–50% of the length. Keep only the strongest ideas. Tighten every sentence. Do not summarize blandly — make it sharper.",
+  longer: "Expand with concrete examples, specifics, and an extra beat or two. Do NOT pad with fluff or clichés. Add real substance only.",
+  more_professional: "Raise the register. Polished, credible, executive tone. No slang. Confident without being stiff.",
+  more_casual: "Drop the formality. Sound like a smart friend texting. Contractions, conversational rhythm, plain words.",
+  more_aggressive: "Sharper, more confrontational stance. Direct claims, no hedging, fewer qualifiers. Strong verbs.",
+  more_emotional: "Lean into feeling. Name what the reader is experiencing. Vivid, human, specific moments over abstractions.",
+  more_viral: "Engineer scroll-stopping appeal: punchier hook, pattern-interrupt, tighter rhythm, a quotable line. Still substantive.",
+  more_persuasive: "Tighten the argument. Lead with the strongest claim, back it with proof/specifics, end with a clear takeaway.",
+  simpler: "Plain language only. Short sentences. Grade-7 reading level. Remove jargon. Anyone should understand it.",
+  more_storytelling: "Reframe as a story or scene. Concrete moment, tension, turn, lesson. First-person if natural.",
+};
+
+const REWRITE_PLATFORM_RULES: Record<string, string> = {
+  twitter: "Preserve thread structure (numbered tweets, line breaks). Each tweet < 280 chars. Punchy.",
+  linkedin: "Preserve LinkedIn structure: strong first 2 lines, short paragraphs, generous line breaks. Readable.",
+  instagram: "Keep emotional, scannable cadence. Preserve hashtags at the end if present.",
+  newsletter: "Preserve subject line + section structure (intro, bullets, CTA). Stay narrative.",
+  tiktok: "Preserve script beats ([HOOK]/[SETUP]/[VALUE]/[CTA]). Spoken-aloud cadence.",
+};
+
+/** Rewrite a single generated content block with a style modifier, preserving platform structure. */
+export const rewriteContent = createServerFn({ method: "POST" })
+  .inputValidator((d: { text: string; platform: string; style: string }) =>
+    z.object({
+      text: z.string().min(5).max(20000),
+      platform: z.enum(["twitter", "linkedin", "instagram", "newsletter", "tiktok"]),
+      style: z.enum(REWRITE_STYLES),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const styleGuide = REWRITE_STYLE_GUIDE[data.style as RewriteStyle];
+    const platformRule = REWRITE_PLATFORM_RULES[data.platform];
+
+    const result = await callGemini([
+      {
+        role: "system",
+        content:
+          `You are an expert editor. Rewrite the user's post in the same brand voice, preserving the original topic, intent, ` +
+          `and platform-native formatting. Do not introduce new facts. Avoid generic AI clichés ("unlock", "leverage", "delve", "in today's world"). ` +
+          `Platform rules: ${platformRule}`,
+      },
+      {
+        role: "user",
+        content:
+          `REWRITE GOAL: ${styleGuide}\n\n` +
+          `ORIGINAL POST:\n${data.text}\n\n` +
+          `Output ONLY the rewritten post — no preamble, no explanations, no "Here's...".`,
+      },
+    ]);
+
+    const rewritten = result.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!rewritten) throw new Error("Rewrite failed — empty response.");
+    return { rewritten };
+  });
+
 /** Transcribe audio/video using Google Chirp 3 (Speech-to-Text v2) */
 export const transcribeAudio = createServerFn({ method: "POST" })
   .inputValidator((d: { signedUrl: string; mimeType: string }) =>
