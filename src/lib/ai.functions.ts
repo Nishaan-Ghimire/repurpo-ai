@@ -75,6 +75,120 @@ const PLATFORM_PROMPTS: Record<string, string> = {
   tiktok: "Write a TikTok/Reels script (30-60 sec). Format: [HOOK 0-3s], [SETUP 3-10s], [VALUE 10-45s with beats], [CTA 45-60s]. Conversational, punchy.",
 };
 
+export const HOOK_STYLES = [
+  "controversial",
+  "curiosity",
+  "storytelling",
+  "authority",
+  "statistical",
+  "emotional",
+  "bold_claim",
+  "question",
+] as const;
+export type HookStyle = (typeof HOOK_STYLES)[number];
+
+const HOOK_STYLE_GUIDE: Record<HookStyle, string> = {
+  controversial: "Challenge conventional wisdom. Take a stance most people would push back on. No hedging.",
+  curiosity: "Open an information gap. Make the reader NEED to know what comes next. Don't reveal the punchline.",
+  storytelling: "Drop the reader into a specific moment, scene, or turning point. Concrete, sensory, first-person.",
+  authority: "Show you've earned the right to speak — credentials, scale, track record — without sounding arrogant.",
+  statistical: "Lead with a sharp, specific number or stat that reframes the topic. No vague 'studies show'.",
+  emotional: "Name a feeling the reader is quietly having (frustration, fear, longing, relief). Make them feel seen.",
+  bold_claim: "Make a confident, declarative statement that sounds inevitable in hindsight. No qualifiers.",
+  question: "Ask a sharp question the reader has actually asked themselves. Pointed, not rhetorical fluff.",
+};
+
+const PLATFORM_HOOK_TONE: Record<string, string> = {
+  twitter: "Punchy and concise. Max ~200 chars. No emojis unless essential. Earn the second line.",
+  linkedin: "Professional, insight-driven. 1–2 sentences. Sounds like a smart practitioner, not a guru.",
+  instagram: "Emotional, curiosity-heavy. 1 sentence. Make a thumb stop scrolling.",
+  newsletter: "Authority + storytelling. Can be a subject line or first sentence. Specific, not clickbait-y.",
+  tiktok: "Spoken-aloud hook for the first 3 seconds. Pattern-interrupt. Conversational.",
+};
+
+/** Generate opening-hook variations for a topic/transcript, grouped by style. */
+export const generateHooks = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    topic: string;
+    platform: string;
+    styles: string[];
+    perStyle?: number;
+    voiceAnalysis?: Record<string, unknown> | null;
+  }) =>
+    z.object({
+      topic: z.string().min(10).max(50000),
+      platform: z.enum(["twitter", "linkedin", "instagram", "newsletter", "tiktok"]),
+      styles: z.array(z.enum(HOOK_STYLES)).min(1).max(HOOK_STYLES.length),
+      perStyle: z.number().int().min(3).max(5).optional(),
+      voiceAnalysis: z.record(z.string(), z.any()).nullable().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const perStyle = data.perStyle ?? 4;
+    const platformTone = PLATFORM_HOOK_TONE[data.platform];
+    const voiceBlock = data.voiceAnalysis
+      ? `\n\nWRITER'S BRAND VOICE (mimic):\n${JSON.stringify(data.voiceAnalysis, null, 2)}\n`
+      : "";
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "save_hooks",
+          description: "Return generated opening hooks grouped by style.",
+          parameters: {
+            type: "object",
+            properties: {
+              hooks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    style: { type: "string", enum: [...HOOK_STYLES] },
+                    text: { type: "string" },
+                  },
+                  required: ["style", "text"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["hooks"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    const stylesBlock = data.styles
+      .map((s) => `- ${s}: ${HOOK_STYLE_GUIDE[s as HookStyle]}`)
+      .join("\n");
+
+    const result = await callGemini(
+      [
+        {
+          role: "system",
+          content:
+            `You are a world-class attention engineer. You write scroll-stopping opening hooks for social content. ` +
+            `Hooks must be specific to the source material — no generic templates, no "in today's world", no "unlock/leverage/delve". ` +
+            `Platform tone: ${platformTone}${voiceBlock}`,
+        },
+        {
+          role: "user",
+          content:
+            `SOURCE MATERIAL:\n${data.topic}\n\n` +
+            `Generate exactly ${perStyle} hook variations for EACH of these styles (total ${perStyle * data.styles.length}):\n${stylesBlock}\n\n` +
+            `Each hook is 1–2 sentences max. Return via the save_hooks tool.`,
+        },
+      ],
+      { tools, tool_choice: { type: "function", function: { name: "save_hooks" } } }
+    );
+
+    const call = result.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) throw new Error("Hook generation failed — no structured response.");
+    const parsed = JSON.parse(call.function.arguments) as { hooks: Array<{ style: HookStyle; text: string }> };
+    return { hooks: parsed.hooks };
+  });
+
 /** Generate platform-specific content from a transcript using the user's voice */
 export const generateContent = createServerFn({ method: "POST" })
   .inputValidator((d: {
@@ -84,6 +198,7 @@ export const generateContent = createServerFn({ method: "POST" })
     toneIntensity?: number;
     feedback?: string;
     previousText?: string;
+    selectedHook?: string;
   }) =>
     z.object({
       transcript: z.string().min(20).max(50000),
@@ -92,6 +207,7 @@ export const generateContent = createServerFn({ method: "POST" })
       toneIntensity: z.number().min(1).max(10).optional(),
       feedback: z.string().max(2000).optional(),
       previousText: z.string().max(20000).optional(),
+      selectedHook: z.string().max(1000).optional(),
     }).parse(d)
   )
   .handler(async ({ data }) => {
@@ -101,6 +217,9 @@ export const generateContent = createServerFn({ method: "POST" })
     const intensity = data.toneIntensity ?? 6;
     const feedbackBlock = data.feedback
       ? `\n\nUSER FEEDBACK ON PREVIOUS DRAFT (apply these changes):\n"${data.feedback}"\n${data.previousText ? `\nPREVIOUS DRAFT FOR REFERENCE:\n${data.previousText}\n` : ""}`
+      : "";
+    const hookBlock = data.selectedHook
+      ? `\n\nREQUIRED OPENING HOOK — use this VERBATIM as the very first line, then build the rest of the post naturally from it:\n"${data.selectedHook}"\n`
       : "";
 
     const outputs: Record<string, string> = {};
@@ -119,7 +238,7 @@ export const generateContent = createServerFn({ method: "POST" })
           {
             role: "user",
             content:
-              `${platformInstr}\n\nSOURCE TRANSCRIPT:\n${data.transcript}${feedbackBlock}\n\n` +
+              `${platformInstr}\n\nSOURCE TRANSCRIPT:\n${data.transcript}${hookBlock}${feedbackBlock}\n\n` +
               `Output ONLY the final content — no preamble, no explanations, no "Here's your...".`,
           },
         ]);

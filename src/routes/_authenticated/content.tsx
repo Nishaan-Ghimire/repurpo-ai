@@ -3,18 +3,31 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useServerFn } from "@tanstack/react-start";
-import { generateContent } from "@/lib/ai.functions";
+import { generateContent, generateHooks, HOOK_STYLES, type HookStyle } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import {
   Copy, Sparkles, Twitter, Linkedin, Instagram, Mail, Video,
-  Search, Trash2, RefreshCw, ClipboardCopy, Clock,
+  Search, Trash2, RefreshCw, ClipboardCopy, Clock, Zap, Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
 import { fireGoldConfetti } from "@/lib/confetti";
+
+const HOOK_STYLE_LABELS: Record<HookStyle, string> = {
+  controversial: "Controversial",
+  curiosity: "Curiosity",
+  storytelling: "Storytelling",
+  authority: "Authority",
+  statistical: "Statistical",
+  emotional: "Emotional",
+  bold_claim: "Bold Claim",
+  question: "Question-Based",
+};
+
+interface Hook { style: HookStyle; text: string; }
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentPage,
@@ -37,6 +50,7 @@ function ContentPage() {
   const { user } = useAuth();
   const { uploadId } = Route.useSearch();
   const generate = useServerFn(generateContent);
+  const genHooks = useServerFn(generateHooks);
 
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [selected, setSelected] = useState<string>("");
@@ -45,6 +59,13 @@ function ContentPage() {
   const [intensity, setIntensity] = useState(6);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
+
+  // Hook engine
+  const [hookStyles, setHookStyles] = useState<HookStyle[]>(["curiosity", "bold_claim"]);
+  const [hookPlatform, setHookPlatform] = useState<PlatformId>("linkedin");
+  const [hooks, setHooks] = useState<Hook[]>([]);
+  const [hooksBusy, setHooksBusy] = useState(false);
+  const [selectedHook, setSelectedHook] = useState<string | null>(null);
 
   // library filters
   const [query, setQuery] = useState("");
@@ -92,6 +113,50 @@ function ContentPage() {
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
+  const toggleHookStyle = (s: HookStyle) => {
+    setHookStyles((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  };
+
+  // Load any previously saved hooks for this source
+  useEffect(() => {
+    if (!selected) { setHooks([]); setSelectedHook(null); return; }
+    supabase.from("content_uploads").select("hooks").eq("id", selected).maybeSingle()
+      .then(({ data }) => {
+        const stored = (data?.hooks as Hook[] | null) ?? [];
+        setHooks(stored);
+        setSelectedHook(null);
+      });
+  }, [selected]);
+
+  const runHooks = async () => {
+    if (!user || !selected) return toast.error("Pick a source first.");
+    if (hookStyles.length === 0) return toast.error("Pick at least one hook style.");
+    const upload = uploads.find((u) => u.id === selected);
+    const topic = upload?.transcript;
+    if (!topic) return toast.error("Source has no transcript / text yet.");
+    setHooksBusy(true);
+    try {
+      const { data: voice } = await supabase.from("voice_profiles").select("analysis").eq("is_default", true).maybeSingle();
+      const { hooks: newHooks } = await genHooks({
+        data: {
+          topic,
+          platform: hookPlatform,
+          styles: hookStyles,
+          voiceAnalysis: (voice?.analysis as Record<string, unknown> | null) ?? null,
+        },
+      });
+      setHooks(newHooks);
+      setSelectedHook(null);
+      await supabase.from("content_uploads").update({ hooks: newHooks }).eq("id", selected);
+      toast.success(`Generated ${newHooks.length} hooks.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Hook generation failed";
+      toast.error(msg);
+    } finally {
+      setHooksBusy(false);
+    }
+  };
+
   const run = async () => {
     if (!user || !selected) return toast.error("Pick an upload first.");
     if (picked.length === 0) return toast.error("Pick at least one platform.");
@@ -109,6 +174,7 @@ function ContentPage() {
           platforms: picked,
           voiceAnalysis: (voice?.analysis as Record<string, unknown> | null) ?? null,
           toneIntensity: intensity,
+          selectedHook: selectedHook ?? undefined,
         },
       });
 
@@ -266,12 +332,135 @@ function ContentPage() {
           <Slider value={[intensity]} onValueChange={(v) => setIntensity(v[0])} min={1} max={10} step={1} className="mt-2" />
         </div>
 
+        {/* Hook Engine */}
+        <div className="rounded-xl border border-primary/30 bg-accent/20 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-primary text-primary-foreground shadow-glow">
+                <Zap className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <div className="font-display text-sm font-semibold">Hook Engine</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Generate scroll-stopping opening lines before the full post.
+                </div>
+              </div>
+            </div>
+            <select
+              value={hookPlatform}
+              onChange={(e) => setHookPlatform(e.target.value as PlatformId)}
+              className="rounded-md border border-input bg-background/60 px-2 py-1 text-xs backdrop-blur"
+            >
+              {PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs font-medium text-muted-foreground">Hook styles</label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {HOOK_STYLES.map((s) => {
+                const active = hookStyles.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleHookStyle(s)}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                      active
+                        ? "border-primary bg-gradient-primary text-primary-foreground shadow-glow"
+                        : "border-border bg-background/40 hover:border-primary/50"
+                    }`}
+                  >
+                    {HOOK_STYLE_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={runHooks}
+            disabled={hooksBusy || !selected}
+            className="mt-3"
+          >
+            <Zap className="mr-1.5 h-3.5 w-3.5" />
+            {hooksBusy ? "Generating hooks…" : "Generate Hook Variations"}
+          </Button>
+
+          {hooksBusy && (
+            <div className="mt-3 rounded-lg border border-border/60 bg-background/40 p-3">
+              <PremiumLoader label="Engineering attention" sublabel="Crafting hooks tuned to your platform…" />
+            </div>
+          )}
+
+          {hooks.length > 0 && (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {hooks.map((h, i) => {
+                const isSel = selectedHook === h.text;
+                return (
+                  <div
+                    key={`${h.style}-${i}`}
+                    className={`rounded-xl border p-3 transition ${
+                      isSel ? "border-primary bg-primary/10 shadow-glow" : "border-border bg-background/40 hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        {HOOK_STYLE_LABELS[h.style]}
+                      </span>
+                      {isSel && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
+                          <Check className="h-3 w-3" /> Selected
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed">{h.text}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => copy(h.text, "Hook copied")}>
+                        <Copy className="mr-1 h-3 w-3" /> Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={isSel ? "secondary" : "outline"}
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setSelectedHook(isSel ? null : h.text)}
+                      >
+                        {isSel ? "Unselect" : "Use This Hook"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedHook && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/40 bg-primary/10 p-2.5 text-xs">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <div className="flex-1">
+                <div className="font-semibold text-primary">Locked-in opening hook</div>
+                <div className="mt-0.5 text-muted-foreground line-clamp-2">{selectedHook}</div>
+              </div>
+              <button
+                onClick={() => setSelectedHook(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Clear selected hook"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
         <Button
           onClick={run}
           disabled={busy}
           className="w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow"
         >
-          <Sparkles className="mr-2 h-4 w-4" /> {busy ? "Generating…" : "Generate"}
+          <Sparkles className="mr-2 h-4 w-4" /> {busy ? "Generating…" : selectedHook ? "Generate with selected hook" : "Generate"}
         </Button>
 
         {busy && (

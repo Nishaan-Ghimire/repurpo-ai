@@ -20,6 +20,7 @@ export type Database = {
           content_type: string
           created_at: string
           file_path: string | null
+          hooks: Json | null
           id: string
           original_content: string | null
           status: string
@@ -32,6 +33,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           file_path?: string | null
+          hooks?: Json | null
           id?: string
           original_content?: string | null
           status?: string
@@ -44,6 +46,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           file_path?: string | null
+          hooks?: Json | null
           id?: string
           original_content?: string | null
           status?: string
