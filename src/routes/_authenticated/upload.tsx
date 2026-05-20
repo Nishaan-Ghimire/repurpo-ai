@@ -174,6 +174,57 @@ function UploadPage() {
             {busy && <div className="mt-4"><PremiumLoader label={stage || "Working"} /></div>}
           </TabsContent>
 
+          <TabsContent value="url" className="mt-4 space-y-3">
+            <Label htmlFor="url">URL</Label>
+            <div className="flex gap-2">
+              <Input
+                id="url"
+                type="url"
+                placeholder="YouTube video, blog post, or X thread URL"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="bg-background/40"
+              />
+              <Button onClick={fetchUrl} disabled={busy || !url.trim()} variant="secondary">
+                <Link2 className="mr-2 h-4 w-4" /> Fetch
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Supports YouTube (auto-transcript), articles/blogs, and X/Twitter pages.
+            </p>
+
+            {busy && stage && <PremiumLoader label={stage} />}
+
+            {urlPreview && (
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium truncate">{urlPreview.title}</p>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+                    {urlPreview.kind}
+                  </span>
+                </div>
+                <Textarea
+                  rows={10}
+                  value={urlPreview.content}
+                  onChange={(e) => setUrlPreview({ ...urlPreview, content: e.target.value })}
+                  className="mt-3 bg-background/40"
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {urlPreview.content.length.toLocaleString()} characters extracted — edit before saving if needed.
+                </p>
+                <Button
+                  onClick={submitUrl}
+                  disabled={busy}
+                  className="mt-3 w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow"
+                >
+                  {busy ? "Saving…" : "Save & continue"}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+
+
           <TabsContent value="text" className="mt-4">
             <Label htmlFor="text">Transcript or article</Label>
             <Textarea
