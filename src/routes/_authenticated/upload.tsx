@@ -144,8 +144,9 @@ function UploadPage() {
         </div>
 
         <Tabs defaultValue="file">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="file">Upload file</TabsTrigger>
+            <TabsTrigger value="url">Import from URL</TabsTrigger>
             <TabsTrigger value="text">Paste text</TabsTrigger>
           </TabsList>
 
