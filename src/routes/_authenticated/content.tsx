@@ -32,7 +32,10 @@ interface Hook { style: HookStyle; text: string; }
 
 export const Route = createFileRoute("/_authenticated/content")({
   component: ContentPage,
-  validateSearch: (s: Record<string, unknown>) => ({ uploadId: (s.uploadId as string) || "" }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    uploadId: (s.uploadId as string) || "",
+    moment: (s.moment as string) || "",
+  }),
 });
 
 const PLATFORMS = [
