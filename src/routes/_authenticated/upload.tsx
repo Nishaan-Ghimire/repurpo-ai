@@ -19,6 +19,7 @@ function UploadPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const transcribe = useServerFn(transcribeAudio);
+  const importUrl = useServerFn(importFromUrl);
 
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -26,6 +27,10 @@ function UploadPage() {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // URL import state
+  const [url, setUrl] = useState("");
+  const [urlPreview, setUrlPreview] = useState<{ title: string; content: string; sourceUrl: string; kind: string } | null>(null);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
