@@ -346,6 +346,128 @@ export const rewriteContent = createServerFn({ method: "POST" })
     return { rewritten };
   });
 
+/** Strip HTML to readable text (lightweight, no deps). */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/(p|div|li|h[1-6]|br|tr)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function detectUrlKind(url: string): "youtube" | "twitter" | "article" {
+  const u = url.toLowerCase();
+  if (u.includes("youtube.com/watch") || u.includes("youtu.be/")) return "youtube";
+  if (u.includes("twitter.com/") || u.includes("x.com/")) return "twitter";
+  return "article";
+}
+
+async function fetchYoutubeTranscript(url: string): Promise<{ title: string; text: string } | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].replace(/ - YouTube$/, "").trim() : "YouTube video";
+
+    // Extract captionTracks from ytInitialPlayerResponse
+    const playerMatch = html.match(/"captionTracks":(\[.*?\])/);
+    if (!playerMatch) return { title, text: "" };
+    const tracks = JSON.parse(playerMatch[1].replace(/\\u0026/g, "&")) as Array<{ baseUrl: string; languageCode: string }>;
+    const track = tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
+    if (!track) return { title, text: "" };
+
+    const capRes = await fetch(track.baseUrl);
+    if (!capRes.ok) return { title, text: "" };
+    const xml = await capRes.text();
+    const text = xml
+      .replace(/<\/?text[^>]*>/g, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, " ")
+      .trim();
+    return { title, text };
+  } catch {
+    return null;
+  }
+}
+
+/** Import readable content from a URL (YouTube transcript, blog article, X thread). */
+export const importFromUrl = createServerFn({ method: "POST" })
+  .inputValidator((d: { url: string }) =>
+    z.object({ url: z.string().url().max(2000) }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const kind = detectUrlKind(data.url);
+
+    if (kind === "youtube") {
+      const yt = await fetchYoutubeTranscript(data.url);
+      if (yt && yt.text && yt.text.length > 40) {
+        return { kind, title: yt.title, content: yt.text, sourceUrl: data.url };
+      }
+      throw new Error(
+        "Couldn't fetch a transcript for this YouTube video (it may have captions disabled). Try pasting the transcript directly."
+      );
+    }
+
+    // Generic article / Twitter — fetch & strip
+    const res = await fetch(data.url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; RepurpoBot/1.0)",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    if (!res.ok) throw new Error(`Could not fetch URL (${res.status}).`);
+    const html = await res.text();
+    if (html.length > 2_000_000) throw new Error("Page too large to import.");
+
+    const titleMatch =
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i) ||
+      html.match(/<title>([^<]+)<\/title>/i);
+    const rawTitle = titleMatch ? titleMatch[1].trim() : "Imported content";
+
+    const rawText = htmlToText(html);
+    if (rawText.length < 200) throw new Error("Couldn't extract enough readable content from this URL.");
+
+    // Use Gemini to extract the main article body, dropping nav/footer/ads
+    const truncated = rawText.slice(0, 30000);
+    const result = await callGemini([
+      {
+        role: "system",
+        content:
+          "You are a content extractor. Given raw page text (with nav, footers, ads, and unrelated chrome mixed in), return ONLY the main article/post body as clean plain text. Preserve paragraphs and natural line breaks. No commentary, no markdown headers like 'Article:', no preamble.",
+      },
+      {
+        role: "user",
+        content: `URL: ${data.url}\nKIND: ${kind}\n\nRAW PAGE TEXT:\n${truncated}`,
+      },
+    ]);
+    const content = result.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!content || content.length < 100) throw new Error("Couldn't extract meaningful content from this URL.");
+
+    return { kind, title: rawTitle.slice(0, 200), content, sourceUrl: data.url };
+  });
+
 /** Transcribe audio/video using Google Chirp 3 (Speech-to-Text v2) */
 export const transcribeAudio = createServerFn({ method: "POST" })
   .inputValidator((d: { signedUrl: string; mimeType: string }) =>

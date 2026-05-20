@@ -3,13 +3,13 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useServerFn } from "@tanstack/react-start";
-import { transcribeAudio } from "@/lib/ai.functions";
+import { transcribeAudio, importFromUrl } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload as UploadIcon, FileText } from "lucide-react";
+import { Upload as UploadIcon, FileText, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLoader } from "@/components/premium-loader";
 
@@ -19,6 +19,7 @@ function UploadPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const transcribe = useServerFn(transcribeAudio);
+  const importUrl = useServerFn(importFromUrl);
 
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -26,6 +27,10 @@ function UploadPage() {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // URL import state
+  const [url, setUrl] = useState("");
+  const [urlPreview, setUrlPreview] = useState<{ title: string; content: string; sourceUrl: string; kind: string } | null>(null);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -87,6 +92,46 @@ function UploadPage() {
     }
   };
 
+  const fetchUrl = async () => {
+    if (!url.trim()) return toast.error("Paste a URL first.");
+    setBusy(true);
+    setStage("Fetching content…");
+    setUrlPreview(null);
+    try {
+      const res = await importUrl({ data: { url: url.trim() } });
+      setUrlPreview({ title: res.title, content: res.content, sourceUrl: res.sourceUrl, kind: res.kind });
+      if (!title.trim()) setTitle(res.title);
+      toast.success(`Imported from ${res.kind === "youtube" ? "YouTube" : res.kind === "twitter" ? "X/Twitter" : "URL"}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Import failed");
+    } finally {
+      setBusy(false);
+      setStage("");
+    }
+  };
+
+  const submitUrl = async () => {
+    if (!user || !urlPreview) return;
+    if (!title.trim()) return toast.error("Add a title.");
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("content_uploads")
+      .insert({
+        user_id: user.id,
+        title,
+        original_content: urlPreview.sourceUrl,
+        transcript: urlPreview.content,
+        content_type: urlPreview.kind === "youtube" ? "video" : "text",
+        status: "ready",
+      })
+      .select()
+      .single();
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Saved!");
+    navigate({ to: "/content", search: { uploadId: data.id } as any });
+  };
+
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Upload content</h1>
@@ -99,8 +144,9 @@ function UploadPage() {
         </div>
 
         <Tabs defaultValue="file">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="file">Upload file</TabsTrigger>
+            <TabsTrigger value="url">Import from URL</TabsTrigger>
             <TabsTrigger value="text">Paste text</TabsTrigger>
           </TabsList>
 
@@ -127,6 +173,57 @@ function UploadPage() {
             </Button>
             {busy && <div className="mt-4"><PremiumLoader label={stage || "Working"} /></div>}
           </TabsContent>
+
+          <TabsContent value="url" className="mt-4 space-y-3">
+            <Label htmlFor="url">URL</Label>
+            <div className="flex gap-2">
+              <Input
+                id="url"
+                type="url"
+                placeholder="YouTube video, blog post, or X thread URL"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="bg-background/40"
+              />
+              <Button onClick={fetchUrl} disabled={busy || !url.trim()} variant="secondary">
+                <Link2 className="mr-2 h-4 w-4" /> Fetch
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Supports YouTube (auto-transcript), articles/blogs, and X/Twitter pages.
+            </p>
+
+            {busy && stage && <PremiumLoader label={stage} />}
+
+            {urlPreview && (
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium truncate">{urlPreview.title}</p>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+                    {urlPreview.kind}
+                  </span>
+                </div>
+                <Textarea
+                  rows={10}
+                  value={urlPreview.content}
+                  onChange={(e) => setUrlPreview({ ...urlPreview, content: e.target.value })}
+                  className="mt-3 bg-background/40"
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {urlPreview.content.length.toLocaleString()} characters extracted — edit before saving if needed.
+                </p>
+                <Button
+                  onClick={submitUrl}
+                  disabled={busy}
+                  className="mt-3 w-full bg-gradient-primary text-primary-foreground btn-shine shadow-glow"
+                >
+                  {busy ? "Saving…" : "Save & continue"}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+
 
           <TabsContent value="text" className="mt-4">
             <Label htmlFor="text">Transcript or article</Label>
