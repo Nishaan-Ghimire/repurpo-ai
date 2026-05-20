@@ -1,0 +1,1 @@
+ALTER TABLE public.content_uploads ADD COLUMN IF NOT EXISTS viral_moments jsonb;

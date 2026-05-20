@@ -27,6 +27,7 @@ export type Database = {
           title: string
           transcript: string | null
           user_id: string
+          viral_moments: Json | null
         }
         Insert: {
           calendar_date?: string
@@ -40,6 +41,7 @@ export type Database = {
           title: string
           transcript?: string | null
           user_id: string
+          viral_moments?: Json | null
         }
         Update: {
           calendar_date?: string
@@ -53,6 +55,7 @@ export type Database = {
           title?: string
           transcript?: string | null
           user_id?: string
+          viral_moments?: Json | null
         }
         Relationships: []
       }
