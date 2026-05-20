@@ -92,6 +92,46 @@ function UploadPage() {
     }
   };
 
+  const fetchUrl = async () => {
+    if (!url.trim()) return toast.error("Paste a URL first.");
+    setBusy(true);
+    setStage("Fetching content…");
+    setUrlPreview(null);
+    try {
+      const res = await importUrl({ data: { url: url.trim() } });
+      setUrlPreview({ title: res.title, content: res.content, sourceUrl: res.sourceUrl, kind: res.kind });
+      if (!title.trim()) setTitle(res.title);
+      toast.success(`Imported from ${res.kind === "youtube" ? "YouTube" : res.kind === "twitter" ? "X/Twitter" : "URL"}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Import failed");
+    } finally {
+      setBusy(false);
+      setStage("");
+    }
+  };
+
+  const submitUrl = async () => {
+    if (!user || !urlPreview) return;
+    if (!title.trim()) return toast.error("Add a title.");
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("content_uploads")
+      .insert({
+        user_id: user.id,
+        title,
+        original_content: urlPreview.sourceUrl,
+        transcript: urlPreview.content,
+        content_type: urlPreview.kind === "youtube" ? "video" : "text",
+        status: "ready",
+      })
+      .select()
+      .single();
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Saved!");
+    navigate({ to: "/content", search: { uploadId: data.id } as any });
+  };
+
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Upload content</h1>
