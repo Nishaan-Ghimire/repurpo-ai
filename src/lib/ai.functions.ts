@@ -346,6 +346,91 @@ export const rewriteContent = createServerFn({ method: "POST" })
     return { rewritten };
   });
 
+/** Detect the highest-potential viral moments inside a long-form transcript. */
+export const detectViralMoments = createServerFn({ method: "POST" })
+  .inputValidator((d: { transcript: string; max?: number }) =>
+    z.object({
+      transcript: z.string().min(50).max(60000),
+      max: z.number().int().min(3).max(12).optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const max = data.max ?? 8;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "save_moments",
+          description: "Return the most scroll-stopping, share-worthy moments inside the transcript, ranked by viral potential.",
+          parameters: {
+            type: "object",
+            properties: {
+              moments: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    quote: { type: "string", description: "Direct quote or tight paraphrase from the source. 1–3 sentences." },
+                    score: { type: "integer", minimum: 1, maximum: 100, description: "Viral potential 1–100." },
+                    reason: { type: "string", description: "Why this moment will perform — psychological / structural reasoning." },
+                    angle: { type: "string", description: "The angle to lean into (controversy, surprise, contrarian take, story turn, sharp stat, etc.)" },
+                    suggested_platforms: {
+                      type: "array",
+                      items: { type: "string", enum: ["twitter", "linkedin", "instagram", "newsletter", "tiktok"] },
+                    },
+                    suggested_hook_style: {
+                      type: "string",
+                      enum: [...HOOK_STYLES],
+                    },
+                  },
+                  required: ["quote", "score", "reason", "angle", "suggested_platforms", "suggested_hook_style"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["moments"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    const result = await callGemini(
+      [
+        {
+          role: "system",
+          content:
+            "You are a viral content analyst. You read long-form transcripts (podcasts, videos, talks, blog drafts) and identify the moments most likely to stop the scroll on social media. " +
+            "Look for: sharp contrarian takes, surprising stats, vulnerable personal stories, big claims, pattern-interrupts, quotable one-liners, and emotional turns. " +
+            "Avoid generic motivational filler. Score honestly — most moments are 40–70; reserve 85+ for genuinely viral material. Rank from highest to lowest score.",
+        },
+        {
+          role: "user",
+          content:
+            `TRANSCRIPT:\n${data.transcript}\n\n` +
+            `Return up to ${max} of the strongest viral moments via the save_moments tool. Quotes must come from the transcript (verbatim or tightly paraphrased).`,
+        },
+      ],
+      { tools, tool_choice: { type: "function", function: { name: "save_moments" } } }
+    );
+
+    const call = result.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) throw new Error("Viral moment detection failed — no structured response.");
+    const parsed = JSON.parse(call.function.arguments) as {
+      moments: Array<{
+        quote: string;
+        score: number;
+        reason: string;
+        angle: string;
+        suggested_platforms: string[];
+        suggested_hook_style: HookStyle;
+      }>;
+    };
+    parsed.moments.sort((a, b) => b.score - a.score);
+    return { moments: parsed.moments };
+  });
+
 /** Strip HTML to readable text (lightweight, no deps). */
 function htmlToText(html: string): string {
   return html
