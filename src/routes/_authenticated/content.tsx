@@ -52,7 +52,7 @@ interface Asset { id: string; upload_id: string; platform: string; generated_tex
 
 function ContentPage() {
   const { user } = useAuth();
-  const { uploadId } = Route.useSearch();
+  const { uploadId, moment } = Route.useSearch();
   const generate = useServerFn(generateContent);
   const genHooks = useServerFn(generateHooks);
 
@@ -89,6 +89,15 @@ function ContentPage() {
       else if (data && data.length) setSelected(data[0].id);
     });
   }, [user, uploadId]);
+
+  // Preload a viral moment as the locked-in opening hook when arriving from /moments
+  useEffect(() => {
+    if (moment && moment.trim()) {
+      setSelectedHook(moment);
+      toast.success("Viral moment loaded as opening hook");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moment]);
 
   const loadAssets = async (uploadId: string | null) => {
     if (!uploadId) return setAssets([]);
