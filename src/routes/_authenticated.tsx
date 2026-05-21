@@ -17,6 +17,7 @@ const NAV = [
   { to: "/voice", label: "Brand Voice", icon: Mic },
   { to: "/content", label: "Generated Content", icon: FileText },
   { to: "/moments", label: "Viral Moments", icon: Flame },
+  { to: "/hooks", label: "Hook A/B Factory", icon: Beaker },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/account", label: "Account", icon: User },
 ] as const;
