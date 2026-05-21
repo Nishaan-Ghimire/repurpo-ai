@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/content")({
   validateSearch: (s: Record<string, unknown>) => ({
     uploadId: (s.uploadId as string) || "",
     moment: (s.moment as string) || "",
+    hook: (s.hook as string) || "",
   }),
 });
 
