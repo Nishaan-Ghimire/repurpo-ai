@@ -17,7 +17,6 @@ import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedMomentsRouteImport } from './routes/_authenticated/moments'
 import { Route as AuthenticatedHooksRouteImport } from './routes/_authenticated/hooks'
-import { Route as AuthenticatedHooksRouteImport } from './routes/_authenticated/hooks'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
@@ -55,6 +54,11 @@ const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
 const AuthenticatedMomentsRoute = AuthenticatedMomentsRouteImport.update({
   id: '/moments',
   path: '/moments',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHooksRoute = AuthenticatedHooksRouteImport.update({
+  id: '/hooks',
+  path: '/hooks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedHooksRoute = AuthenticatedHooksRouteImport.update({
