@@ -189,6 +189,97 @@ export const generateHooks = createServerFn({ method: "POST" })
     return { hooks: parsed.hooks };
   });
 
+/** Hook A/B Factory — generate 10+ rated hook variations with engagement scores and reasoning. */
+export const generateRatedHooks = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    topic: string;
+    platform: string;
+    styles?: string[];
+    count?: number;
+    voiceAnalysis?: Record<string, unknown> | null;
+  }) =>
+    z.object({
+      topic: z.string().min(10).max(50000),
+      platform: z.enum(["twitter", "linkedin", "instagram", "newsletter", "tiktok"]),
+      styles: z.array(z.enum(HOOK_STYLES)).min(1).max(HOOK_STYLES.length).optional(),
+      count: z.number().int().min(8).max(20).optional(),
+      voiceAnalysis: z.record(z.string(), z.any()).nullable().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const count = data.count ?? 12;
+    const styles = data.styles ?? [...HOOK_STYLES];
+    const platformTone = PLATFORM_HOOK_TONE[data.platform];
+    const voiceBlock = data.voiceAnalysis
+      ? `\n\nWRITER'S BRAND VOICE (mimic):\n${JSON.stringify(data.voiceAnalysis, null, 2)}\n`
+      : "";
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "save_rated_hooks",
+          description: "Return rated opening hook variations, each with a predicted engagement score and reasoning.",
+          parameters: {
+            type: "object",
+            properties: {
+              hooks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    style: { type: "string", enum: [...HOOK_STYLES] },
+                    text: { type: "string", description: "The hook itself, 1–2 sentences." },
+                    score: { type: "integer", minimum: 1, maximum: 100, description: "Predicted engagement potential 1–100." },
+                    reason: { type: "string", description: "Why this hook will/won't perform — psychology + structure." },
+                    strengths: { type: "array", items: { type: "string" }, description: "1–3 short bullets on what's working." },
+                    risks: { type: "array", items: { type: "string" }, description: "0–2 short bullets on what could backfire." },
+                  },
+                  required: ["style", "text", "score", "reason", "strengths", "risks"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["hooks"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    const stylesBlock = styles.map((s) => `- ${s}: ${HOOK_STYLE_GUIDE[s as HookStyle]}`).join("\n");
+
+    const result = await callGemini(
+      [
+        {
+          role: "system",
+          content:
+            `You are a world-class attention engineer running A/B tests on opening hooks for social posts. ` +
+            `For each hook: keep it specific to the source, avoid generic AI tropes ("in today's world", "unlock", "leverage", "delve"), ` +
+            `and score honestly — most hooks land 40–70; only truly scroll-stopping hooks earn 85+. ` +
+            `Platform tone: ${platformTone}${voiceBlock}`,
+        },
+        {
+          role: "user",
+          content:
+            `SOURCE MATERIAL:\n${data.topic}\n\n` +
+            `Generate exactly ${count} hook variations spread across these styles (vary the mix):\n${stylesBlock}\n\n` +
+            `For each: a 1–2 sentence hook, a predicted engagement score (1–100), the reason, strengths, and risks. ` +
+            `Return via the save_rated_hooks tool. Sort highest score first.`,
+        },
+      ],
+      { tools, tool_choice: { type: "function", function: { name: "save_rated_hooks" } } }
+    );
+
+    const call = result.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) throw new Error("Hook rating failed — no structured response.");
+    const parsed = JSON.parse(call.function.arguments) as {
+      hooks: Array<{ style: HookStyle; text: string; score: number; reason: string; strengths: string[]; risks: string[] }>;
+    };
+    parsed.hooks.sort((a, b) => b.score - a.score);
+    return { hooks: parsed.hooks };
+  });
+
 /** Generate platform-specific content from a transcript using the user's voice */
 export const generateContent = createServerFn({ method: "POST" })
   .inputValidator((d: {
