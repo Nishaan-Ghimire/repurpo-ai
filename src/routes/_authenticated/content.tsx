@@ -100,6 +100,15 @@ function ContentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moment]);
 
+  // Preload a rated hook from /hooks (Hook A/B Factory)
+  useEffect(() => {
+    if (hook && hook.trim()) {
+      setSelectedHook(hook);
+      toast.success("Hook loaded from A/B factory");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hook]);
+
   const loadAssets = async (uploadId: string | null) => {
     if (!uploadId) return setAssets([]);
     const { data } = await supabase
