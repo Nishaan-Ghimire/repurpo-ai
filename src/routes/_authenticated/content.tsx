@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/content")({
   validateSearch: (s: Record<string, unknown>) => ({
     uploadId: (s.uploadId as string) || "",
     moment: (s.moment as string) || "",
+    hook: (s.hook as string) || "",
   }),
 });
 
@@ -52,7 +53,7 @@ interface Asset { id: string; upload_id: string; platform: string; generated_tex
 
 function ContentPage() {
   const { user } = useAuth();
-  const { uploadId, moment } = Route.useSearch();
+  const { uploadId, moment, hook } = Route.useSearch();
   const generate = useServerFn(generateContent);
   const genHooks = useServerFn(generateHooks);
 
@@ -98,6 +99,15 @@ function ContentPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moment]);
+
+  // Preload a rated hook from /hooks (Hook A/B Factory)
+  useEffect(() => {
+    if (hook && hook.trim()) {
+      setSelectedHook(hook);
+      toast.success("Hook loaded from A/B factory");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hook]);
 
   const loadAssets = async (uploadId: string | null) => {
     if (!uploadId) return setAssets([]);

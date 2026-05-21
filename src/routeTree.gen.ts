@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedMomentsRouteImport } from './routes/_authenticated/moments'
+import { Route as AuthenticatedHooksRouteImport } from './routes/_authenticated/hooks'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
@@ -55,6 +56,11 @@ const AuthenticatedMomentsRoute = AuthenticatedMomentsRouteImport.update({
   path: '/moments',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedHooksRoute = AuthenticatedHooksRouteImport.update({
+  id: '/hooks',
+  path: '/hooks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/content': typeof AuthenticatedContentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hooks': typeof AuthenticatedHooksRoute
   '/moments': typeof AuthenticatedMomentsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/voice': typeof AuthenticatedVoiceRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/content': typeof AuthenticatedContentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hooks': typeof AuthenticatedHooksRoute
   '/moments': typeof AuthenticatedMomentsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/voice': typeof AuthenticatedVoiceRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/content': typeof AuthenticatedContentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/hooks': typeof AuthenticatedHooksRoute
   '/_authenticated/moments': typeof AuthenticatedMomentsRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/content'
     | '/dashboard'
+    | '/hooks'
     | '/moments'
     | '/upload'
     | '/voice'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/content'
     | '/dashboard'
+    | '/hooks'
     | '/moments'
     | '/upload'
     | '/voice'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/_authenticated/calendar'
     | '/_authenticated/content'
     | '/_authenticated/dashboard'
+    | '/_authenticated/hooks'
     | '/_authenticated/moments'
     | '/_authenticated/upload'
     | '/_authenticated/voice'
@@ -212,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMomentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/hooks': {
+      id: '/_authenticated/hooks'
+      path: '/hooks'
+      fullPath: '/hooks'
+      preLoaderRoute: typeof AuthenticatedHooksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -248,6 +267,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedContentRoute: typeof AuthenticatedContentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHooksRoute: typeof AuthenticatedHooksRoute
   AuthenticatedMomentsRoute: typeof AuthenticatedMomentsRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
   AuthenticatedVoiceRoute: typeof AuthenticatedVoiceRoute
@@ -258,6 +278,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedContentRoute: AuthenticatedContentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHooksRoute: AuthenticatedHooksRoute,
   AuthenticatedMomentsRoute: AuthenticatedMomentsRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedVoiceRoute: AuthenticatedVoiceRoute,

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Sparkles, Upload, Mic, FileText, User, LogOut, LayoutDashboard, Menu, Calendar, Flame } from "lucide-react";
+import { Sparkles, Upload, Mic, FileText, User, LogOut, LayoutDashboard, Menu, Calendar, Flame, Beaker } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -17,6 +17,7 @@ const NAV = [
   { to: "/voice", label: "Brand Voice", icon: Mic },
   { to: "/content", label: "Generated Content", icon: FileText },
   { to: "/moments", label: "Viral Moments", icon: Flame },
+  { to: "/hooks", label: "Hook A/B Factory", icon: Beaker },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/account", label: "Account", icon: User },
 ] as const;
