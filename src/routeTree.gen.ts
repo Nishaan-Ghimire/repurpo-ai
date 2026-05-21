@@ -61,11 +61,6 @@ const AuthenticatedHooksRoute = AuthenticatedHooksRouteImport.update({
   path: '/hooks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedHooksRoute = AuthenticatedHooksRouteImport.update({
-  id: '/hooks',
-  path: '/hooks',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
