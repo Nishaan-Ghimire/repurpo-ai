@@ -53,7 +53,7 @@ interface Asset { id: string; upload_id: string; platform: string; generated_tex
 
 function ContentPage() {
   const { user } = useAuth();
-  const { uploadId, moment } = Route.useSearch();
+  const { uploadId, moment, hook } = Route.useSearch();
   const generate = useServerFn(generateContent);
   const genHooks = useServerFn(generateHooks);
 
